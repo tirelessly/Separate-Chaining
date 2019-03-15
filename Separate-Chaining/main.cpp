@@ -1,15 +1,17 @@
-//
-//  main.cpp
-//  Separate-Chaining
-//
-//  Created by Ruslan Jelbuldin on 15.03.19.
-//  Copyright © 2019 Ruslan Jelbuldin. All rights reserved.
-//
 
 #include <iostream>
+#include <vector>
+#include "ADS_set.h"
+
+using namespace std;
 
 int main(int argc, const char * argv[]) {
-    // insert code here...
-    std::cout << "Hello, World!\n";
+ 
+    ADS_set<int> ads {1,2,34,1,2};
+    ads.dump();
+    
+    
+    
+    
     return 0;
 }
