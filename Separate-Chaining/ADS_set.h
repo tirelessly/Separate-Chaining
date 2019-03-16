@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
-
+using namespace std;
 template <typename Key, size_t N = 7>
 class ADS_set {
 public:
@@ -26,7 +26,7 @@ public:
 private:
     struct Node {
         Key key;
-        Node* next{nullptr};
+        Node* next = nullptr;
         ~Node() {
             delete next;
         }
@@ -64,11 +64,17 @@ public:
     ADS_set() {
         table = new Node[max_sz];
     }
+    
     ADS_set(std::initializer_list<key_type> ilist): ADS_set() {
         insert(ilist);
     }
-    template<typename InputIt> ADS_set(InputIt first, InputIt last);
+    
+    template<typename InputIt> ADS_set(InputIt first, InputIt last): ADS_set() {
+        insert(first, last);
+    }
+    
     ADS_set(const ADS_set& other);
+    
     ~ADS_set() {
         delete [] table;
     }
@@ -76,8 +82,8 @@ public:
     ADS_set& operator=(const ADS_set& other);
     ADS_set& operator=(std::initializer_list<key_type> ilist);
     
-    size_type size() const;
-    bool empty() const;
+    size_type size() const { return sz; }
+    bool empty() const { return max_sz; }
     
     size_type count(const key_type& key) const {
         return !!find_pos(key);
@@ -85,8 +91,18 @@ public:
     
     iterator find(const key_type& key) const;
     
-    void clear();
-    void swap(ADS_set& other);
+    void clear() {
+        ADS_set temp;
+        swap(temp);
+    }
+    
+    void swap(ADS_set& other) {
+        using std::swap;
+        swap(sz, other.sz);
+        swap(max_sz, other.max_sz);
+        swap(max_lf, other.max_lf);
+        swap(table, other.table);
+    }
     
     void insert(std::initializer_list<key_type> ilist) {
         for(const auto& i: ilist) {
@@ -95,12 +111,25 @@ public:
     }
     
     std::pair<iterator,bool> insert(const key_type& key);
-    template<typename InputIt> void insert(InputIt first, InputIt last);
+    template<typename InputIt> void insert(InputIt first, InputIt last) {
+        for(auto it = first; it != last; it++) {
+            if(find_pos(*it) != nullptr) insert_unchecked(*it);
+        }
+    }
     
     size_type erase(const key_type& key);
     
-    const_iterator begin() const;
-    const_iterator end() const;
+    const_iterator begin() const {
+        for(size_t i{0}; i < max_sz; ++i){
+            if(table[i].next)
+                return const_iterator(this, table + i, table[i].next);
+        }
+        return end();
+    }
+    
+    const_iterator end() const {
+        return const_iterator(nullptr);
+    }
     
     void dump(std::ostream& o = std::cerr) const {
         o << "max_sz = " << max_sz << '\n';
@@ -128,14 +157,45 @@ public:
     using reference = const value_type&;
     using pointer = const value_type*;
     using iterator_category = std::forward_iterator_tag;
+private:
+    const ADS_set* set{nullptr};
+    const Node* ptr{nullptr};
+    Node* p = nullptr;
+public:
+    explicit Iterator(const ADS_set* set = nullptr, const Node* ptr = nullptr, Node* p=nullptr): set(set), ptr(ptr), p(p) {
+    }
+    reference operator*() const { return p -> key; }
+    pointer operator->() const { return &p -> key; }
     
-    explicit Iterator(/* implementation-dependent */);
-    reference operator*() const;
-    pointer operator->() const;
-    Iterator& operator++();
-    Iterator operator++(int);
-    friend bool operator==(const Iterator& lhs, const Iterator& rhs);
-    friend bool operator!=(const Iterator& lhs, const Iterator& rhs);
+    Iterator& operator++() {
+        if(p -> next != nullptr){
+            p = p -> next;
+            return *this;
+        }
+        while(++ptr != &set -> table[set -> max_sz]){
+            p = ptr -> next;
+            if(p){
+                return *this;
+            }
+        }
+        p = nullptr;
+        ptr = nullptr;
+        return *this;
+        
+        
+    }
+    
+    Iterator operator++(int) {
+        Iterator temp = *this;
+        operator++();
+        return temp;
+    }
+    friend bool operator==(const Iterator& lhs, const Iterator& rhs) {
+        return lhs.p == rhs.p;
+    }
+    friend bool operator!=(const Iterator& lhs, const Iterator& rhs){
+        return lhs.p != rhs.p;
+    }
 };
 
 template <typename Key, size_t N> void swap(ADS_set<Key,N>& lhs, ADS_set<Key,N>& rhs) { lhs.swap(rhs); }
